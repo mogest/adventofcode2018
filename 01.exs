@@ -22,7 +22,7 @@ defmodule Day01 do
     |> Stream.cycle
     |> Stream.scan(0, &+/2)
     |> Enum.reduce_while(MapSet.new([0]), fn value, history ->
-      if MapSet.member?(history, value), do: {:halt, value}, else: {:cont, MapSet.put(history, value)}
+      if value in history, do: {:halt, value}, else: {:cont, MapSet.put(history, value)}
     end)
   end
 end
