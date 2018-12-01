@@ -1,12 +1,16 @@
 defmodule Day01 do
   def run do
-    changes = IO.read(:all)
-    |> String.trim
-    |> String.split("\n")
-    |> Enum.map(&String.to_integer/1)
+    changes = read_changes()
 
     changes |> add |> IO.puts
     changes |> find_duplicate_frequency |> IO.puts
+  end
+
+  defp read_changes do
+    IO.read(:all)
+    |> String.trim
+    |> String.split("\n")
+    |> Enum.map(&String.to_integer/1)
   end
 
   defp add(changes) do
