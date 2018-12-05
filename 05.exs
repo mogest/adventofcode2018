@@ -29,14 +29,13 @@ defmodule Day05 do
   end
 
   defp fully_reacted_length(polymer) do
-    polymer
-    |> Stream.unfold(fn polymer ->
-      reacted_polymer = react(polymer)
-      if reacted_polymer != polymer, do: {reacted_polymer, reacted_polymer}
-    end)
-    |> Stream.map(&length/1)
-    |> Enum.to_list()
-    |> List.last()
+    reacted_polymer = react(polymer)
+
+    if reacted_polymer == polymer do
+      length(reacted_polymer)
+    else
+      fully_reacted_length(reacted_polymer)
+    end
   end
 
   defp react(polymer) do
