@@ -34,17 +34,12 @@ defmodule Day04 do
     sleepiest =
       entries
       |> Enum.chunk_every(2, 1, :discard)
+      |> Enum.filter(fn [start, _] -> start.event == :asleep end)
       |> Enum.reduce(%{}, fn [start, stop], log ->
-        if start.event == :asleep do
-          seconds = DateTime.diff(stop.time, start.time)
-          Map.update(log, start.id, seconds, &(&1 + seconds))
-        else
-          log
-        end
+        seconds = DateTime.diff(stop.time, start.time)
+        Map.update(log, start.id, seconds, &(&1 + seconds))
       end)
-      |> Enum.to_list()
-      |> Enum.sort_by(&elem(&1, 1))
-      |> List.last()
+      |> Enum.max_by(&elem(&1, 1))
       |> elem(0)
 
     minute = sleepiest_minute(entries, sleepiest) |> elem(0)
@@ -58,8 +53,7 @@ defmodule Day04 do
     {id, {minute, _}} =
       Enum.map(ids, &{&1, sleepiest_minute(entries, &1)})
       |> Enum.filter(fn {_, x} -> x end)
-      |> Enum.sort_by(fn {_, {_, n}} -> n end)
-      |> List.last()
+      |> Enum.max_by(fn {_, {_, n}} -> n end)
 
     String.to_integer(id) * minute
   end
@@ -72,12 +66,7 @@ defmodule Day04 do
       start_unix = div(DateTime.to_unix(start.time), 60)
       stop_unix = div(DateTime.to_unix(stop.time), 60)
 
-      Stream.unfold(start_unix, fn unix ->
-        if unix < stop_unix do
-          {positive_rem(unix, 60), unix + 1}
-        end
-      end)
-      |> Enum.to_list()
+      minutes_between(start_unix, stop_unix)
     end)
     |> Enum.reduce(%{}, fn minute, minutes -> Map.update(minutes, minute, 1, &(&1 + 1)) end)
     |> Enum.sort_by(&elem(&1, 1))
@@ -88,6 +77,9 @@ defmodule Day04 do
     {:ok, time, 0} = DateTime.from_iso8601("#{ts}:00+00")
     time
   end
+
+  defp minutes_between(start, stop) when start >= stop, do: []
+  defp minutes_between(start, stop), do: [positive_rem(start, 60) | minutes_between(start + 1, stop)]
 
   def positive_rem(a, b) when a < 0, do: b + rem(a, b)
   def positive_rem(a, b), do: rem(a, b)
