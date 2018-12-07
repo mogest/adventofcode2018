@@ -5,47 +5,59 @@ defmodule Day07 do
   def run do
     instructions = read()
 
+    assemble_sleigh(instructions, 1)
+    |> elem(0)
+    |> IO.inspect()
+
+    assemble_sleigh(instructions, @worker_count)
+    |> elem(1)
+    |> IO.inspect()
+  end
+
+  defp assemble_sleigh(instructions, worker_count) do
     path =
       instructions
       |> Enum.reduce(%{}, fn {a, b}, result ->
         Map.update(result, a, [b], &([b | &1] |> Enum.sort()))
       end)
 
-    dependencies =
+    deps =
       instructions
       |> Enum.reduce(%{}, fn {a, b}, result ->
         Map.update(result, b, [a], &[a | &1])
       end)
 
-    assemble_sleigh(path, dependencies, make_workers(1))
-    |> elem(0)
-    |> IO.inspect()
-
-    assemble_sleigh(path, dependencies, make_workers(@worker_count))
-    |> elem(1)
-    |> IO.inspect()
+    assemble_sleigh_tick(path, deps, make_workers(worker_count), [], 0)
   end
 
   defp make_workers(count) do
     List.duplicate({nil, 0}, count)
   end
 
-  defp assemble_sleigh(path, deps, workers, done \\ [], current_time \\ 0) do
+  defp assemble_sleigh_tick(path, deps, workers, done, current_time) do
     {new_done, new_workers, new_current_time} = move_time_forward(done, workers, current_time)
 
-    ready = calculate_ready(path, deps, new_done, new_workers)
+    new_new_workers = assign_steps_to_free_workers(path, deps, new_workers, new_done)
 
-    {new_new_workers, _} =
-      Enum.flat_map_reduce(new_workers, ready, fn
-        {_, 0}, [next | rest] -> {[{next, completion_time(next)}], rest}
-        worker, ready -> {[worker], ready}
-      end)
-
-    if Enum.all?(new_new_workers, fn {_, time} -> time == 0 end) do
+    if all_workers_are_free?(new_new_workers) do
       {new_done |> Enum.join(), new_current_time}
     else
-      assemble_sleigh(path, deps, new_new_workers, new_done, new_current_time)
+      assemble_sleigh_tick(path, deps, new_new_workers, new_done, new_current_time)
     end
+  end
+
+  defp all_workers_are_free?(workers) do
+    Enum.all?(workers, fn {_, time} -> time == 0 end)
+  end
+
+  defp assign_steps_to_free_workers(path, deps, workers, done) do
+    ready = calculate_ready(path, deps, done, workers)
+
+    Enum.flat_map_reduce(workers, ready, fn
+      {_, 0}, [next | rest] -> {[{next, completion_time(next)}], rest}
+      worker, ready -> {[worker], ready}
+    end)
+    |> elem(0)
   end
 
   defp move_time_forward(done, workers, current_time) do
